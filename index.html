@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Moresh File Share - Ready</title>
+
+<!-- Inter font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- QR generator (kept) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<style>
+  :root{
+    --bg-start:#f4f8fb;
+    --bg-end:#eef6ff;
+    --card:#ffffff;
+    --text:#0f172a;
+    --muted:#6b7280;
+    --accent:#2563eb;
+    --accent-2:#4f46e5;
+    --success:#16a34a;
+    --danger:#ef4444;
+    --glass: rgba(255,255,255,0.7);
+    --radius:12px;
+    --shadow: 0 10px 30px rgba(2,6,23,0.08);
+  }
+  [data-theme="dark"]{
+    --bg-start:#071029;
+    --bg-end:#041022;
+    --card:#0b1220;
+    --text:#e6eef7;
+    --muted:#94a3b8;
+    --glass: rgba(255,255,255,0.03);
+    --shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg-start),var(--bg-end));color:var(--text);-webkit-font-smoothing:antialiased}
+  .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
+
+  .card{width:100%;max-width:980px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:grid;grid-template-columns:1fr 360px;gap:18px;transition:transform .12s ease}
+  .card:active{transform:translateY(1px)}
+  @media(max-width:880px){ .card{grid-template-columns:1fr;padding:12px} .right{order:2} .left{order:1} }
+
+  h1{margin:0;font-size:20px}
+  p.lead{margin:6px 0 12px;color:var(--muted);font-size:14px}
+
+  /* Left column */
+  .left{padding-right:6px}
+  .dropzone{border:2px dashed rgba(37,99,235,0.12);border-radius:12px;padding:18px;display:flex;gap:14px;align-items:center;cursor:pointer;background:var(--glass);transition:all .18s}
+  .dropzone .icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fff,rgba(255,255,255,0.85));box-shadow:0 6px 16px rgba(2,6,23,0.04)}
+  .dropzone.drag{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 26px rgba(37,99,235,0.06)}
+  .dz-text{flex:1}
+  .muted{color:var(--muted);font-size:13px}
+
+  .meta{display:flex;gap:12px;align-items:center;margin-top:12px}
+  .thumb{width:72px;height:72px;border-radius:8px;background:#f1f5f9;border:1px solid rgba(0,0,0,0.03);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .meta .name{font-weight:600}
+  .meta .meta-sub{font-size:13px;color:var(--muted);margin-top:6px}
+
+  .presets{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .preset{padding:8px 10px;border-radius:8px;border:1px solid #e6eef7;background:transparent;cursor:pointer;color:var(--muted);font-weight:600;transition:all .12s}
+  .preset.active{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(37,99,235,0.12)}
+
+  input[type="number"], input[type="text"]{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef7;margin-top:8px;font-size:14px}
+
+  /* progress */
+  .progress{height:12px;background:#e6eef7;border-radius:999px;overflow:hidden;margin-top:12px;display:none}
+  .progress .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .45s cubic-bezier(.18,.9,.32,1)}
+  .progress-row{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:13px;display:none}
+
+  .controls{display:flex;gap:8px;margin-top:12px}
+  .btn{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:transform .08s,box-shadow .08s}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:transparent;border:1px solid #e6eef7;color:var(--text);font-weight:600}
+  .btn.warn{background:var(--danger)}
+  .btn.small{padding:8px 10px;font-weight:600}
+  .small{font-size:13px;color:var(--muted)}
+
+  /* right column */
+  .right{padding-left:10px;border-left:1px dashed rgba(2,6,23,0.04)}
+  @media(max-width:880px){ .right{border-left:none;padding-left:0;margin-top:18px} }
+
+  .share-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:12px;border-radius:10px}
+  .share-link{background:#f1f5f9;padding:10px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .share-actions{display:flex;gap:8px}
+  #qrcode{margin-top:12px;border-radius:12px;padding:8px;display:inline-block;opacity:0;transform:translateY(8px);transition:all .28s ease;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+
+  .qrcode-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .badge{display:inline-block;padding:6px 8px;border-radius:999px;font-weight:700;background:rgba(16,185,129,0.12);color:var(--success);}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;padding:10px 14px;border-radius:8px;color:#fff;z-index:9999;display:flex;gap:10px;align-items:center;font-weight:700}
+  .toast.info{background:var(--accent)} .toast.success{background:var(--success)} .toast.error{background:var(--danger)}
+  .toast svg{opacity:.95}
+
+  .check{width:62px;height:62px;border-radius:999px;background:linear-gradient(180deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;box-shadow:0 8px 26px rgba(16,185,129,0.18);transform:scale(0);animation:pop .36s forwards}
+  @keyframes pop{to{transform:scale(1)}}
+
+  .hint-hover{font-size:12px;color:var(--muted);opacity:0;transform:translateY(4px);transition:all .12s}
+  .dropzone:hover .hint-hover{opacity:1;transform:translateY(0)}
+
+  footer{font-size:13px;color:var(--muted);margin-top:14px}
+
+/* mobile tweak: move share under upload (already handled by order) */
+</style>
+</head>
+<body data-theme="">
+<!-- theme icon -->
+<div style="position:fixed;top:14px;right:14px;z-index:999">
+  <button id="themeToggle" aria-label="Toggle theme" title="Toggle theme" style="padding:8px;border-radius:8px;border:1px solid #e6eef7;background:transparent;cursor:pointer;display:flex;align-items:center;gap:8px">
+    <span id="themeIcon">🌞</span>
+  </button>
+</div>
+
+<div class="wrap" role="application" aria-label="File share app">
+  <div class="card" id="appCard">
+    <div class="left" role="region" aria-labelledby="uploadHeading">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h1 id="uploadHeading">Share a file</h1>
+          <p class="lead">Drag file here, paste an image, or click to browse. Files are encrypted at rest and auto-deleted after expiry.</p>
+        </div>
+        <div class="small" style="color:var(--muted)">Max 200 MB · JPG, PNG, PDF, ZIP</div>
+      </div>
+
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="File drop zone">
+        <div class="icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3v8" stroke="#2563eb" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 7l4-4 4 4" stroke="#2563eb" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 21H4" stroke="#2563eb" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="dz-text">
+          <div style="font-weight:700">Drop file here or click to select</div>
+          <div class="muted hint-hover" id="helperText">Max 200 MB · JPG, PNG, PDF, ZIP accepted</div>
+        </div>
+        <input id="fileInput" type="file" accept="image/*,application/pdf,application/zip,text/*" aria-label="Choose file" style="display:none">
+      </div>
+
+      <div id="meta" class="meta" style="display:none" aria-live="polite">
+        <div class="thumb" id="thumb"></div>
+        <div>
+          <div class="name" id="fileName">Filename</div>
+          <div class="meta-sub" id="fileSub">0.0 MB · type</div>
+        </div>
+      </div>
+
+      <div class="presets" role="tablist" aria-label="Expiry presets">
+        <button class="preset active" data-seconds="3600">1 hour</button>
+        <button class="preset" data-seconds="86400">1 day</button>
+        <button class="preset" data-seconds="604800">1 week</button>
+        <input id="customSeconds" type="number" placeholder="Custom seconds" aria-label="Custom expiry in seconds" style="min-width:140px;padding:8px;border-radius:8px;border:1px solid #e6eef7" />
+      </div>
+
+      <div class="progress" id="progress" aria-hidden="true">
+        <div class="bar" id="progressBar"></div>
+      </div>
+      <div class="progress-row" id="progressRow" aria-hidden="true">
+        <div id="percentText">0%</div>
+        <div id="speedText">0 MB/s</div>
+      </div>
+
+      <div class="controls" style="margin-top:14px">
+        <button id="uploadBtn" class="btn" aria-disabled="false">Upload</button>
+        <button id="cancelBtn" class="btn warn" style="display:none">Cancel</button>
+        <button id="clearBtn" class="btn ghost small">Clear</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="small">Select file, then upload. You will get a short code and QR to share.</div>
+      </div>
+    </div>
+
+    <div class="right" role="region" aria-labelledby="shareHeading">
+      <h2 id="shareHeading" style="margin-top:0;font-size:16px">Share & download</h2>
+
+      <div id="beforeShare">
+        <div class="small muted">After upload, you’ll see a link, QR and share actions here.</div>
+      </div>
+
+      <div id="afterShare" style="display:none">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="check" aria-hidden="true">✓</div>
+          <div>
+            <div style="font-weight:700">Upload complete <span class="badge" id="uploadedBadge" style="display:none">Done</span></div>
+            <div class="small muted" id="shareSub">File will expire automatically.</div>
+          </div>
+        </div>
+
+        <div class="share-card" style="margin-top:12px">
+          <div class="share-link" role="group" aria-label="Share link">
+            <div style="flex:1">
+              <div class="small">Share link</div>
+              <div id="shareUrl" style="word-break:break-word;font-weight:700"></div>
+
+              <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                <div id="shortPreview" class="small muted" style="flex:0 0 auto;display:none">Short</div>
+                <div id="shortLink" style="font-weight:600"></div>
+                <div id="expiresIn" class="small muted" style="margin-left:auto"></div>
+              </div>
+
+              <div id="downloadCount" class="small muted" style="margin-top:6px"></div>
+              <div id="lastAccessed" class="small muted" style="margin-top:6px"></div>
+            </div>
+            <div class="share-actions">
+              <button id="copyLink" title="Copy link" class="btn ghost small">Copy</button>
+              <button id="nativeShare" title="Share" class="btn small">Share</button>
+            </div>
+          </div>
+
+          <div id="qrcode" aria-hidden="true" style="margin-top:12px"></div>
+
+          <div class="qrcode-row" style="margin-top:10px">
+            <label class="small muted" for="qrTheme">QR theme</label>
+            <select id="qrTheme" aria-label="QR theme">
+              <option value="auto">Auto</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="accent">Accent</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <h3 style="margin:0 0 8px">Download a file</h3>
+        <label class="small">Enter code</label>
+        <input id="downloadCode" type="text" placeholder="abc123" aria-label="Download code" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="downloadBtn" class="btn">Download</button>
+          <button id="previewBtn" class="btn ghost">Preview</button>
+        </div>
+        <div id="previewArea" style="margin-top:12px"></div>
+      </div>
+
+      <footer style="margin-top:22px">Built for Moresh Londe • Serverless (S3 + Lambda + DynamoDB)</footer>
+    </div>
+  </div>
+</div>
+
+<!-- optional ding (left blank to avoid autoplay problems) -->
+<audio id="ding" src="" preload="auto"></audio>
+
+<script>
+/* ===== CONFIG: set your API base URL and frontend domain ===== */
+const API_BASE = "YOUR API BASE URL HERE"; 
+const FRONTEND_ORIGIN = "YOUR BUCKET URL HERE"; //
+/* ============================================================ */
+
+/* Elements */
+const body = document.body;
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const meta = document.getElementById('meta');
+const thumb = document.getElementById('thumb');
+const fileNameEl = document.getElementById('fileName');
+const fileSub = document.getElementById('fileSub');
+const presets = document.querySelectorAll('.preset');
+const customSeconds = document.getElementById('customSeconds');
+const uploadBtn = document.getElementById('uploadBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const clearBtn = document.getElementById('clearBtn');
+const progress = document.getElementById('progress');
+const progressBar = document.getElementById('progressBar');
+const progressRow = document.getElementById('progressRow');
+const percentText = document.getElementById('percentText');
+const speedText = document.getElementById('speedText');
+const beforeShare = document.getElementById('beforeShare');
+const afterShare = document.getElementById('afterShare');
+const shareUrl = document.getElementById('shareUrl');
+const copyLink = document.getElementById('copyLink');
+const nativeShare = document.getElementById('nativeShare');
+const qrcodeDiv = document.getElementById('qrcode');
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadCode = document.getElementById('downloadCode');
+const previewBtn = document.getElementById('previewBtn');
+const previewArea = document.getElementById('previewArea');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const qrTheme = document.getElementById('qrTheme');
+const shortLinkEl = document.getElementById('shortLink');
+const shortPreview = document.getElementById('shortPreview');
+const expiresInEl = document.getElementById('expiresIn');
+const downloadCountEl = document.getElementById('downloadCount');
+const lastAccessedEl = document.getElementById('lastAccessed');
+const uploadedBadge = document.getElementById('uploadedBadge');
+
+let chosenFile = null;
+let expirySeconds = 3600; // default 1 hour
+let currentXHR = null;
+let currentShareUrl = '';
+let currentCode = '';
+let expiryTimer = null;
+
+/* Theme init */
+const savedTheme = localStorage.getItem('morya_theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+setTheme(savedTheme);
+themeToggle.addEventListener('click', () => {
+  const newTheme = body.dataset.theme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
+});
+function setTheme(t){
+  body.dataset.theme = t === 'dark' ? 'dark' : '';
+  localStorage.setItem('morya_theme', t);
+  themeIcon.textContent = t === 'dark' ? '🌙' : '🌞';
+}
+
+/* Accessibility: keyboard activate dropzone */
+dropzone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+/* Drag & drop, paste, click */
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+fileInput.addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (f) setFile(f);
+});
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const it of items){
+    if (it.kind === 'file'){
+      setFile(it.getAsFile());
+      return;
+    }
+  }
+});
+
+/* Presets */
+presets.forEach(btn => {
+  btn.addEventListener('click', () => {
+    presets.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    expirySeconds = Number(btn.dataset.seconds);
+    customSeconds.value = '';
+  });
+});
+customSeconds.addEventListener('input', () => {
+  presets.forEach(b => b.classList.remove('active'));
+  const v = parseInt(customSeconds.value, 10);
+  if (!isNaN(v) && v > 0) expirySeconds = v;
+});
+
+/* File selection UI */
+function setFile(file){
+  chosenFile = file;
+  meta.style.display = 'flex';
+  fileNameEl.textContent = file.name;
+  fileSub.textContent = `${formatBytes(file.size)} · ${file.type || 'unknown'}`;
+  // preview thumbnail
+  thumb.innerHTML = '';
+  if (file.type && file.type.startsWith('image/')){
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    img.onload = () => URL.revokeObjectURL(img.src);
+    thumb.appendChild(img);
+  } else if (file.type === 'application/pdf'){
+    thumb.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M7 2h8l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="#64748b" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else {
+    thumb.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#94a3b8" stroke-width="1.2"/></svg>';
+  }
+}
+
+/* Upload */
+uploadBtn.addEventListener('click', async () => {
+  if (!chosenFile) return showToast('Please select a file first', 'error');
+  // validation
+  const maxSize = 200 * 1024 * 1024; // 200 MB
+  const allowed = ['image/', 'application/pdf', 'application/zip', 'text/'];
+  if (chosenFile.size > maxSize) return showToast('File too large (max 200 MB)', 'error');
+  if (!allowed.some(pre => chosenFile.type.startsWith(pre))) return showToast('File type not allowed', 'error');
+
+  try {
+    uploadBtn.disabled = true;
+    showToast('Requesting upload URL...', 'info');
+
+    const payload = { filename: chosenFile.name, contentType: chosenFile.type || 'application/octet-stream', expiresSeconds: expirySeconds };
+    const r = await fetch(`${API_BASE}/get-upload-url`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Failed to get upload URL');
+
+    const { uploadUrl, code } = j;
+    currentCode = code || j.downloadCode || j.code;
+    currentShareUrl = `${FRONTEND_ORIGIN}${window.location.pathname}?code=${encodeURIComponent(currentCode)}`;
+
+    // show UI
+    progress.style.display='block';
+    progressRow.style.display='flex';
+    progressBar.style.width='0%';
+    percentText.textContent='0%';
+    speedText.textContent='0 MB/s';
+    cancelBtn.style.display='inline-block';
+    beforeShare.style.display='none';
+    afterShare.style.display='none';
+
+    // upload via XHR for progress + cancel
+    await uploadViaXHR(uploadUrl, chosenFile);
+
+    // success: populate share UI with returned metadata if available
+    shareUrl.textContent = currentShareUrl;
+    shortLinkEl.textContent = j.shortPath || j.short || '';
+    if (shortLinkEl.textContent) { shortPreview.style.display = 'inline-block'; }
+    else { shortPreview.style.display = 'none'; }
+    downloadCountEl.textContent = j.downloadCount !== undefined ? `Downloads: ${j.downloadCount}` : '';
+    lastAccessedEl.textContent = j.lastAccessed ? `Last accessed: ${new Date(j.lastAccessed).toLocaleString()}` : '';
+    if (j.expiresAt) startExpiryCountdown(new Date(j.expiresAt));
+    renderQRCode(currentShareUrl);
+    afterShare.style.display='block';
+    uploadedBadge.style.display = 'inline-block';
+
+    // micro-interaction: auto-copy link + show tooltip
+    try { await navigator.clipboard.writeText(currentShareUrl); flashCopied(); } catch(e){ /* ignore */ }
+
+    playDing();
+    showToast('Upload successful', 'success');
+
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || 'Upload failed', 'error');
+  } finally {
+    uploadBtn.disabled = false;
+    cancelBtn.style.display = 'none';
+  }
+});
+
+/* XHR upload for progress */
+function uploadViaXHR(url, file){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    currentXHR = xhr;
+    let lastLoaded = 0, lastTime = Date.now();
+
+    xhr.open('PUT', url, true);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable){
+        const percent = (e.loaded / e.total) * 100;
+        // easing transition handled in CSS
+        progressBar.style.width = percent.toFixed(1) + '%';
+        percentText.textContent = `${percent.toFixed(1)}%`;
+
+        const now = Date.now();
+        const deltaBytes = e.loaded - lastLoaded;
+        const deltaTime = (now - lastTime)/1000;
+        if (deltaTime > 0){
+          const mbps = (deltaBytes / (1024*1024)) / deltaTime;
+          speedText.textContent = `${mbps.toFixed(2)} MB/s`;
+        }
+        lastLoaded = e.loaded; lastTime = now;
+      }
+    };
+
+    xhr.onload = () => {
+      currentXHR = null;
+      if (xhr.status === 200 || xhr.status === 204){
+        progressBar.style.width = '100%';
+        percentText.textContent = '100%';
+        speedText.textContent = '';
+        // fade progress out, fade share in (CSS transitions done via display changes)
+        setTimeout(()=> { progress.style.display='none'; progressRow.style.display='none'; }, 500);
+        resolve();
+      } else {
+        reject(new Error('Upload failed with status ' + xhr.status));
+      }
+    };
+    xhr.onerror = () => { currentXHR = null; reject(new Error('Network error during upload')); };
+    xhr.onabort = () => { currentXHR = null; reject(new Error('Upload canceled')); };
+
+    xhr.send(file);
+  });
+}
+
+/* Cancel */
+cancelBtn.addEventListener('click', () => {
+  if (currentXHR){ currentXHR.abort(); showToast('Upload cancelled', 'info'); progress.style.display='none'; progressRow.style.display='none'; }
+});
+
+/* Clear */
+clearBtn.addEventListener('click', clearAll);
+function clearAll(){
+  chosenFile = null;
+  meta.style.display = 'none';
+  thumb.innerHTML = '';
+  fileNameEl.textContent = '';
+  fileSub.textContent = '';
+  progress.style.display='none';
+  progressRow.style.display='none';
+  afterShare.style.display='none';
+  beforeShare.style.display='block';
+  qrcodeDiv.innerHTML = '';
+  shareUrl.textContent = '';
+  shortLinkEl.textContent = '';
+  downloadCountEl.textContent = '';
+  lastAccessedEl.textContent = '';
+  expiresInEl.textContent = '';
+  currentCode = '';
+  currentShareUrl = '';
+  uploadedBadge.style.display = 'none';
+  showToast('Cleared', 'info');
+}
+
+/* Copy link + tooltip flash */
+copyLink.addEventListener('click', async () => {
+  if (!currentShareUrl) return showToast('No link to copy', 'error');
+  try {
+    await navigator.clipboard.writeText(currentShareUrl);
+    flashCopied();
+  } catch (e) { showToast('Copy failed', 'error'); }
+});
+function flashCopied(){
+  // small floating tooltip near copy button by temporarily creating a toast-like micro-tip
+  const tip = document.createElement('div');
+  tip.className = 'toast success';
+  tip.style.bottom = '88px';
+  tip.style.padding = '6px 10px';
+  tip.style.fontSize = '13px';
+  tip.textContent = 'Copied!';
+  document.body.appendChild(tip);
+  setTimeout(()=> tip.remove(), 1200);
+}
+
+/* Native share */
+nativeShare.addEventListener('click', async () => {
+  if (!currentShareUrl) return showToast('No link to share', 'error');
+  if (navigator.share){
+    try { await navigator.share({ title: 'File from Moresh', text: 'Download file', url: currentShareUrl }); } catch(e){ showToast('Share cancelled', 'info'); }
+  } else {
+    try { await navigator.clipboard.writeText(currentShareUrl); flashCopied(); } catch(e){ showToast('Share failed', 'error'); }
+  }
+});
+
+/* Render QR - uses qrcodejs already included */
+function renderQRCode(url){
+  qrcodeDiv.innerHTML = '';
+  try {
+    const box = document.createElement('div');
+    box.style.padding = '8px';
+    box.style.borderRadius = '12px';
+    box.style.display = 'inline-block';
+    // choose theme
+    const theme = qrTheme.value;
+    const isDark = body.dataset.theme === 'dark';
+    if (theme === 'auto') box.style.background = isDark ? '#071029' : '#fff';
+    else if (theme === 'dark') box.style.background = '#071029';
+    else if (theme === 'light') box.style.background = '#fff';
+    else if (theme === 'accent') box.style.background = 'linear-gradient(180deg,var(--accent),var(--accent-2))';
+
+    // border to make QR feel integrated
+    box.style.boxShadow = '0 6px 20px rgba(2,6,23,0.06)';
+    qrcodeDiv.appendChild(box);
+    new QRCode(box, { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.H });
+    // fade-in
+    setTimeout(()=> { qrcodeDiv.style.opacity = 1; qrcodeDiv.style.transform = 'translateY(0)'; }, 40);
+  } catch(e){
+    qrcodeDiv.textContent = 'QR unavailable';
+    qrcodeDiv.style.opacity = 1;
+    qrcodeDiv.style.transform = 'translateY(0)';
+  }
+}
+
+/* Expiry countdown */
+function startExpiryCountdown(date){
+  if (expiryTimer) clearInterval(expiryTimer);
+  function update(){
+    const now = new Date();
+    const diff = date - now;
+    if (diff <= 0){
+      expiresInEl.textContent = 'Expired';
+      clearInterval(expiryTimer);
+      showExpiredState();
+      return;
+    }
+    const s = Math.floor(diff/1000);
+    const days = Math.floor(s / 86400);
+    const hours = Math.floor((s % 86400)/3600);
+    const mins = Math.floor((s % 3600)/60);
+    expiresInEl.textContent = `Expires in ${days>0?days+'d ':''}${hours}h ${mins}m`;
+  }
+  update();
+  expiryTimer = setInterval(update, 30 * 1000);
+}
+
+/* Expired UI */
+function showExpiredState(){
+  document.getElementById('shareSub').textContent = 'File expired';
+  showToast('File expired', 'error');
+}
+
+/* Download flow */
+downloadBtn.addEventListener('click', async () => {
+  const code = downloadCode.value.trim();
+  if (!code) return showToast('Enter code', 'error');
+  try {
+    const r = await fetch(`${API_BASE}/get-download-url`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Failed to get download URL');
+
+    if (j.expired) {
+      // graceful expired display
+      previewArea.innerHTML = `<div style="padding:12px;border-radius:8px;background:rgba(239,68,68,0.06);color:var(--danger);font-weight:700">File expired</div>`;
+      return;
+    }
+
+    // open download
+    window.open(j.downloadUrl, '_blank');
+    showToast('Download started', 'success');
+
+  } catch (err){ showToast(err.message || 'Download failed', 'error'); }
+});
+
+/* Preview button */
+previewBtn.addEventListener('click', async () => {
+  const code = downloadCode.value.trim();
+  if (!code) return showToast('Enter code', 'error');
+  previewArea.innerHTML = 'Loading preview...';
+  try {
+    const r = await fetch(`${API_BASE}/get-download-url`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Not found');
+
+    if (j.expired) {
+      previewArea.innerHTML = `<div style="padding:12px;border-radius:8px;background:rgba(239,68,68,0.06);color:var(--danger);font-weight:700">File expired</div>`;
+      return;
+    }
+
+    // show metadata
+    let metaHtml = `<div style="padding:8px;border-radius:8px;background:rgba(0,0,0,0.02)">${escapeHtml(j.fileName || '')} · ${j.size ? formatBytes(j.size) : ''} · ${j.contentType || ''}</div>`;
+    if (j.fileName && j.fileName.match(/\.(jpg|jpeg|png|gif)$/i)){
+      previewArea.innerHTML = metaHtml + `<div style="margin-top:8px"><img src="${j.downloadUrl}" style="max-width:100%;border-radius:8px" alt="preview"></div>`;
+    } else if (j.fileName && j.fileName.match(/\.pdf$/i)){
+      previewArea.innerHTML = metaHtml + `<div style="margin-top:8px"><iframe src="${j.downloadUrl}" style="width:100%;height:420px;border:0;border-radius:8px"></iframe></div>`;
+    } else {
+      previewArea.innerHTML = metaHtml + `<div style="margin-top:8px" class="small muted">Preview not available. Click Download.</div>`;
+    }
+  } catch (err){ previewArea.innerHTML = ''; showToast(err.message || 'Preview failed', 'error'); }
+});
+
+/* Helpers */
+function formatBytes(bytes){
+  if (!bytes) return '0 B';
+  const k = 1024, sizes = ['B','KB','MB','GB','TB'];
+  const i = Math.floor(Math.log(bytes)/Math.log(k));
+  return parseFloat((bytes / Math.pow(k,i)).toFixed(2)) + ' ' + sizes[i];
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])); }
+
+/* Toasts with icons */
+function showToast(msg, type='info'){
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type==='success'?'success': type==='error'?'error':'info');
+  el.setAttribute('role','status');
+  el.setAttribute('aria-live','polite');
+  el.innerHTML = `${iconFor(type)} <div>${escapeHtml(msg)}</div>`;
+  document.body.appendChild(el);
+  setTimeout(()=> el.remove(), 3000);
+}
+function iconFor(type){
+  if (type === 'success') return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if (type === 'error') return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17h.01" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 21H4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+/* small ding */
+function playDing(){
+  const el = document.getElementById('ding');
+  try { el.play().catch(()=>{}); } catch(e){}
+}
+
+/* Auto-fill from query param */
+(function autoFill(){
+  const p = new URLSearchParams(window.location.search);
+  const code = p.get('code');
+  if (code){ downloadCode.value = code; }
+})();
+
+/* QR theme change re-render */
+qrTheme.addEventListener('change', () => { if (currentShareUrl) renderQRCode(currentShareUrl); });
+
+/* Keyboard accessibility: space/enter on presets */
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.tabIndex = 0;
+  btn.addEventListener('keydown', (e) => { if (e.key==='Enter' || e.key===' ') btn.click(); });
+});
+
+</script>
+</body>
+</html>

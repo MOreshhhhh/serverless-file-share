@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>File Share Download</title>
+</head>
+<body>
+  <h1>Download file</h1>
+  <label>Enter code: <input id="code" /></label>
+  <button id="fetchBtn">Get Download Link</button>
+  <div id="status"></div>
+  <div id="linkArea" style="display:none">
+    <p><a id="downloadLink" href="#" target="_blank">Download file</a></p>
+  </div>
+
+  <script>
+    const apiBase = " your API Gateway base URL"; 
+
+    async function getDownloadUrl(code) {
+      const res = await fetch(`${apiBase}/get-download-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      return res.json();
+    }
+
+    document.getElementById('fetchBtn').addEventListener('click', async () => {
+      const code = document.getElementById('code').value.trim();
+      if (!code) return alert('enter a code');
+
+      document.getElementById('status').innerText = 'Fetching link...';
+      const data = await getDownloadUrl(code);
+
+      if (data.downloadUrl) {
+        document.getElementById('downloadLink').href = data.downloadUrl;
+        document.getElementById('linkArea').style.display = 'block';
+        document.getElementById('status').innerText = 'Ready to download';
+      } else {
+        document.getElementById('status').innerText = data.error || 'Invalid code or expired link';
+        document.getElementById('linkArea').style.display = 'none';
+      }
+    });
+
+    // Auto-fill if opened via ?code=...
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    if (codeParam) {
+      document.getElementById('code').value = codeParam;
+      document.getElementById('fetchBtn').click();
+    }
+  </script>
+</body>
+</html>

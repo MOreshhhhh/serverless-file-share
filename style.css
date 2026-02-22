@@ -1,0 +1,4 @@
+body { font-family: Arial; max-width: 600px; margin: 50px auto; }
+input, button { margin: 10px 0; padding: 5px; }
+progress { width: 100%; margin-top: 10px; }
+a { display: block; margin-top: 10px; }
